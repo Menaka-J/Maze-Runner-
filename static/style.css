@@ -1,0 +1,150 @@
+/* Reset Defaults */
+body,
+h1,
+p {
+    margin: 0;
+    padding: 0;
+    font-family: 'Ancizar Serif', serif;
+}
+
+/* Body Styling */
+body {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Navbar */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: linear-gradient(to right, #2c3e50, #2c3e50);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 30px;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-title {
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px #000;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-right: 50px;
+    margin-bottom: 15px;
+}
+
+.nav-links button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.nav-links button:hover {
+    color: #f1c40f;
+    background-color: #0d2e4a;
+}
+
+/* Main Container */
+.container {
+    display: none;
+    /* Hidden by default */
+    background: white;
+    padding: 30px 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    width: 500px;
+    text-align: center;
+    margin-top: 100px;
+    /* Space below navbar */
+}
+
+/* Heading */
+.container h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+/* Labels */
+label {
+    display: block;
+    text-align: left;
+    margin: 15px 0 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Dropdowns */
+select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    outline: none;
+    transition: 0.3s;
+}
+
+select:focus {
+    border-color: #4facfe;
+    box-shadow: 0 0 5px rgba(79, 172, 254, 0.5);
+}
+
+/* Button */
+button {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Output Section */
+#output {
+    margin-top: 25px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    font-size: 16px;
+    color: #333;
+    border: 1px solid #eee;
+}
+
+#output strong {
+    color: #4facfe;
+}
+
+/* Canvas */
+canvas {
+    margin-top: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
