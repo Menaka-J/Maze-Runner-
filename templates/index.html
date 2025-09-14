@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Maze Runner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Ancizar+Serif:ital,wght@0,300..900;1,300..900&family=Emilys+Candy&family=Irish+Grover&family=Send+Flowers&display=swap"
+        rel="stylesheet">
+    <link rel="icon" href="../static/f.jpg">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet CSS for map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <style>
+        body,
+        button,
+        h1 {
+            font-family: 'Ancizar Serif', serif;
+        }
+
+        /* Ensure map container has a height */
+        #map-container {
+            height: 420px;
+            width: 100%;
+        }
+
+        /* Centered box used for route & places list */
+        .center-box {
+            max-width: 760px;
+            margin: 24px auto;
+            padding: 8px 16px;
+            text-align: center;
+        }
+
+        /* Places list: compact centered grid, NOT full width */
+        #places-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            max-width: 720px;
+            margin: 18px auto 0 auto;
+            justify-items: center;
+            background-color: white;
+            padding: 50px;
+            border-radius: 30px;
+            background-image: url("../static/bg1.png");
+            background-size: cover;
+        }
+
+        .place-btn {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background-color: white;
+            /* Ensures white background */
+            color: black;
+            /* Ensures black text */
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+            font-family: 'Ancizar Serif', serif;
+        }
+
+        .place-btn:hover {
+            transform: translateY(-2px);
+            transition: .12s;
+            background-color: #f9f9f9;
+
+        }
+
+        /* Gallery overlay */
+
+
+        .gallery-media {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .gallery-image {
+            width: 720px;
+            max-width: calc(100% - 140px);
+            height: 460px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #f3f3f3;
+        }
+
+        .arrow-btn {
+            background: transparent;
+            border: none;
+            font-size: 34px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .gallery-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .gallery-card {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 80%;
+            max-height: 90%;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            font-size: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 5px 10px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+
+        /* blur the places list when the gallery is open */
+        #places-list.blurred {
+            filter: blur(4px) brightness(0.9);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* small-device tweaks */
+        @media (max-width: 800px) {
+            .gallery-image {
+                height: 320px;
+            }
+
+            .arrow-btn {
+                font-size: 28px;
+            }
+        }
+
+        /* Center cities list */
+        .places-list {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        /* Gallery overlay background */
+        .gallery-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Gallery card */
+        .gallery-card {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 80%;
+            max-height: 90%;
+        }
+
+        /* Close button */
+        .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            font-size: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 5px 10px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .prev,
+        .next {
+            color: white;
+            /* Or any visible color */
+            font-size: 2rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .center-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Places list buttons */
+        #places-list button {
+            margin: 5px;
+            padding: 10px 15px;
+            background-color: #2c3e50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #places-list button:hover {
+            background-color: #34495e;
+        }
+
+        /* Gallery overlay */
+        .gallery-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .gallery-card {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        /* Close button - top right */
+        .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: red;
+        }
+
+        /* Gallery media container */
+        .gallery-media {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .gallery-image {
+            max-width: 80vw;
+            max-height: 70vh;
+            border-radius: 6px;
+        }
+
+        /* Arrow buttons */
+        .arrow-btn {
+            background: transparent;
+            border: none;
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            padding: 0 15px;
+            user-select: none;
+        }
+
+        .arrow-btn:hover {
+            color: #f39c12;
+        }
+
+        /* Caption */
+        #gallery-caption {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="nav-title" style="color: burlywood; margin-left: 0px;"> <img src="../static/f.jpg" alt="logo"
+                height="30px" width="30px" style="margin-top: 2px;">
+            MAZE RUNNER</div>
+        <nav class="nav-links">
+            <button onclick="showSection('route')" style="font-size: 20px;">Route</button>
+            <button onclick="showSection('map')" style="font-size: 20px;">Map</button>
+            <button onclick="showSection('place')" style="font-size: 20px;">Place</button>
+        </nav>
+    </header>
+
+    <!-- ROUTE SECTION -->
+    <div id="route-section" class="container">
+        <h1 style="color: #2c3e50;">MAZE RUNNER</h1>
+
+        <label for="start" style="font-size: 20px;">Start City:</label>
+        <select id="start">
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city==start %}selected{% endif %}
+                style="font-family: 'Ancizar Serif', serif;">{{ city }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="end" style="font-size: 20px;">End City:</label>
+        <select id="end">
+            {% for city in cities %}
+            <option value="{{ city }}" {% if city==end %}selected{% endif %}
+                style="font-family: 'Ancizar Serif', serif;">{{ city }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="algo" style="font-size: 20px;">Algorithm:</label>
+        <select id="algo">
+            <option value="bfs">BFS</option>
+            <option value="dfs">DFS</option>
+            <option value="ucs">UCS (Shortest Path)</option>
+            <option value="dls">DLS (Depth Limited)</option>
+            <option value="ids">IDS (Iterative Deepening)</option>
+            <option value="astar">A*</option>
+            <option value="ao_star">AO*</option>
+            <option value="genetic">Genetic Algorithm</option>
+        </select>
+
+        <button onclick="findRoute()">Find Route</button>
+
+        <div id="output"></div>
+    </div>
+
+
+    <!-- MAP SECTION -->
+    <div id="map-section" class="container" style="display:none;">
+        <h1 style="color:#2c3e50;">Map</h1>
+        <div id="map-container"></div>
+    </div>
+
+    <!-- PLACES SECTION -->
+    <div id="place-section" class="center-box" style="display:block; margin-top: 70px;">
+        <h1 style="color:#ccc; margin-bottom:6px; background-color:#2c3e50; padding:8px;">Places</h1>
+
+        <!-- List of city buttons -->
+        <div id="places-list" aria-label="Places list"></div>
+
+        <!-- Gallery overlay -->
+        <div id="gallery-overlay" class="gallery-overlay" role="dialog" aria-modal="true">
+            <div class="gallery-card" id="gallery-card">
+                <button class="close-btn" id="gallery-close" title="Close (Esc)"
+                    style="margin-top: 15px; padding-left: 50px;">✕</button>
+                <h3 id="gallery-title" style="margin:6px 0 10px 0;"></h3>
+                <div class="gallery-media">
+                    <button class="arrow-btn" id="gallery-prev" title="Previous (←)">&#10094;</button>
+                    <img id="gallery-image" class="gallery-image" src="" alt="City image" style="margin-top: 20px;">
+                    <button class="arrow-btn" id="gallery-next" title="Next (→)">&#10095;</button>
+                </div>
+                <div id="gallery-caption"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS for map -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        function findRoute() {
+            const start = document.getElementById("start").value;
+            const end = document.getElementById("end").value;
+            const algorithm = document.getElementById("algo").value;
+
+            fetch("/get-route", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ start, end, algorithm })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const output = document.getElementById("output");
+                    output.innerHTML = "";
+
+                    if (data.note) {
+                        output.innerHTML += `<p><strong>Note:</strong> ${data.note}</p>`;
+                    }
+
+                    if (data.path && data.path.length > 0) {
+                        output.innerHTML += `<p><strong>Path:</strong> ${data.path.join(" → ")}</p>`;
+                        output.innerHTML += `<p><strong>Cost:</strong> ${data.cost}</p>`;
+                        drawRouteOnMap(data.coords);
+                    } else {
+                        output.innerHTML += `<p>No route found.</p>`;
+                    }
+                });
+        }
+
+        function showSection(section) {
+            document.getElementById("route-section").style.display = "none";
+            document.getElementById("map-section").style.display = "none";
+            document.getElementById("place-section").style.display = "none";
+
+            document.getElementById(section + "-section").style.display = "block";
+
+            if (section === "map") {  // CHANGED: Ensure map resizes and loads correctly
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 200);
+            }
+        }
+
+        // Initialize Leaflet map
+        let map = L.map('map-container').setView([45.9432, 24.9668], 6); // CHANGED: Center on Romania
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        function drawRouteOnMap(coords) {
+            if (!coords || coords.length === 0) return;
+            let latlngs = coords.map(c => [c.lat, c.lng]);
+            L.polyline(latlngs, { color: 'blue' }).addTo(map);
+            map.fitBounds(latlngs);
+        }
+
+        // Show route section by default
+        // window.onload = () => showSection('route');
+        // ---- PLACES GALLERY ----
+        const placeImages = {
+            "Arad": [
+                "https://media.istockphoto.com/id/1033739958/photo/arad-city-hall.jpg?s=612x612&w=0&k=20&c=DojkMxLw5hfVSpJ_fPOgBDx3IKKoHVSflYcEuESw67s=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQLE21bYAcZov9KR0H93z6b_wNDGnt3hcDzxw&s",
+                "https://thumbs.dreamstime.com/b/snowfall-city-alba-italy-28067733.jpg",
+                "https://media-cdn.tripadvisor.com/media/photo-s/10/0d/dc/a6/arad-central-railway.jpg",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0GJ9w9FkBwW5ayDpG44mC00_q-Y6J1PDUVg&s",
+
+            ],
+            "Zerind": [
+                "https://ik.imagekit.io/tvlk/vcp-asset/gNr3hLh55ZCkPJisyxFK-v9MmzxPu57ZRVI+10VZ2S4b1PNW4T++cbA6yK4gzhAhs9o2HLZ9vs7gy3rpcIU+oKi5EygzQLRjTUv7fRblEVA=/images/1712219570488-1000x562-FIT_AND_TRIM-89091ed080ba18649b5c7e32c6cc95de.jpeg?_src=imagekit&tr=q-40,w-519,h-390",
+                "https://ik.imagekit.io/tvlk/vcp-asset/gNr3hLh55ZCkPJisyxFK-v9MmzxPu57ZRVI+10VZ2S4b1PNW4T++cbA6yK4gzhAhs9o2HLZ9vs7gy3rpcIU+oKi5EygzQLRjTUv7fRblEVA=/images/1712220280460-1000x668-FIT_AND_TRIM-d748f1d7cafda4a808020c18f52ef1e0.jpeg?_src=imagekit&tr=q-40,w-519,h-390",
+                "https://media.istockphoto.com/id/1247633680/photo/amazing-place-with-pink-rhododendron-flowers-at-sunrise-carpathians-romania.jpg?s=612x612&w=0&k=20&c=5Prnqyi1bZrmqDBAynSCSV_Cedmi1CnZ1rKCCmexqJs=",
+                "https://cdn-v2.theculturetrip.com/1200x630/wp-content/uploads/2024/11/shutterstock_2377339539-e1732017901899.webp",
+                "https://media.istockphoto.com/id/486607506/photo/stunning-rural-landscape-near-bran-transylvania-romania-europe.jpg?s=612x612&w=0&k=20&c=IynQySYM4Wu7KJkkkyv77ekyOiHniov4e6VyoOCirKE="
+            ],
+            "Timisoara": [
+                "data:image/jpeg;base64,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",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRye-nhf0AwNgPwxGBw9aj9mZfkmWSZCcL0dA&s",
+                "https://media.istockphoto.com/id/1305770735/photo/timisoara-romania.jpg?s=612x612&w=0&k=20&c=rzrdqF2TD8hUAjqdEycvceukHxsZBZnbg0kvJGRTdr8=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTYm5KdMxMwkHAiUmvjeD5K2aZ4Ko4ObOfk9A&s",
+                "https://assets.bucketlistly.blog/sites/5adf778b6eabcc00190b75b1/content_entry5b155bed5711a8176e9f9783/6451a2add58d15000262f8a0/files/timisoara-romania-travel-photo-20230502065414132-main-image.jpg"
+            ],
+            "Sibiu": [
+                "https://media.istockphoto.com/id/1753896820/photo/sibiu-romania-medieval-carpenters-tower-transylvania-beautiful-cities.jpg?s=612x612&w=0&k=20&c=LYnvcCXFS7Ye87CqlDo89zm2lKCT6CoeLIkFmDpkyEs=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3LKjDN254jlGEdeThryOsAu_te6e69mmC3w&s",
+                "https://tourinromania.com/media/321/brukenthal-palace-transylvania-sibiu-romania-museum.jpg",
+                "https://media.istockphoto.com/id/1447400466/photo/sibiu-transylvania-sibiu-christmas-market-the-most-famous-of-romania.jpg?s=612x612&w=0&k=20&c=iuNYhjIpVpx6mh42EQe8KWCZv4osA82sZ0Jq9leIRbA=",
+                "https://media.istockphoto.com/id/1224043576/photo/sibiu-transylvania-romania.jpg?s=612x612&w=0&k=20&c=x5djWnlUCPqxUNjWi8ejUABehFgG8MY6DhFcsBgah0E="
+
+            ],
+            "Oradea": [
+                "https://media.istockphoto.com/id/1432941781/photo/oradea-romania-christmas-market-in-eastern-europe-transylvania.jpg?s=612x612&w=0&k=20&c=_s3BFzZBKm0w2ewrw4GcPusGpYA05plW-aEknhPepxA=",
+                "https://media.istockphoto.com/id/1257390144/photo/oradea-medieval-downtown-in-transylvania-romania.jpg?s=612x612&w=0&k=20&c=zmYh-X9Kd247PFy0VeUyGGL3-oF69fTl8y5CVdbjamo=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVmwW_1F8ifMtXy2doBwCqyQH14xh9lhKrwA&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYygZbWa79UddxBx7XzoH6g-mH-8_mD4a3-Q&s"
+            ],
+            "Fagaras": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRETm8SKio9v59wNidZtVz1P-LB7O40KEAxYw&s",
+                "https://media.istockphoto.com/id/1587486459/photo/the-capra-lake-summer-landscape-of-the-fagaras-mountains-romania-a-view-from-the-hiking-trail.jpg?s=612x612&w=0&k=20&c=xJVUgDKdj0Bc-a1RToG2-Bp4_yBQXSuWPMTyhEOAgLM=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRfl_bXnI7-qHHvC16gZ5O53CWHcrqixFd0qw&s",
+                "https://media.istockphoto.com/id/1209612360/photo/hosman-village-with-daffodils-field-and-snowy-mountains-transylvania-romania.jpg?s=612x612&w=0&k=20&c=OCw4imJINQkIv_YACMRtENZzb9i9QJ1Xek-uZQGBgFM=",
+                "https://c8.alamy.com/comp/2C7W8MR/view-of-transfagarash-highway-and-valley-in-mountains-of-romania-the-most-beautiful-road-in-europe-location-carpathian-mountains-fagaras-ridge-ro-2C7W8MR.jpg"],
+
+
+            "Rimnicu Vilcea": [
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/22/26/30/24/caption.jpg?w=300&h=300&s=1",
+                "https://thumbs.dreamstime.com/b/ramnicu-valcea-28449246.jpg",
+                "https://media.istockphoto.com/id/1062463890/photo/olt-valley-and-cozia-monastery-near-ramnicu-valcea-romania.jpg?s=612x612&w=0&k=20&c=PfnkgUP6DcTN20FQwC7DNfq9AuIKAUGzCArpaGTrVNQ=",
+                "https://thumbs.dreamstime.com/b/beautiful-fountains-downtown-modern-city-ramnicu-valcea-european-travel-destination-ramnicu-valcea-romania-beautiful-151466312.jpg",
+                "https://discover-valcea.com/wp-content/uploads/2023/09/brezoi.webp"
+
+            ],
+
+
+            "Lugoj": [
+                "https://media.istockphoto.com/id/2217990790/photo/old-buildings-in-downtown-city-of-lugoj-romania.jpg?s=612x612&w=0&k=20&c=Y4Li519iU8ompFGOturLET1G6yjss7XvuULaflsEOuU=",
+                "https://i.pinimg.com/736x/9e/b1/ba/9eb1ba5e67cb1d6b61a024a3c9f5f437.jpg",
+                "https://thumbs.dreamstime.com/b/amazing-romania-has-magnificent-towns-cities-fantastic-architecture-culture-as-my-beautiful-town-lugoj-timis-county-106651709.jpg",
+                "https://t4.ftcdn.net/jpg/01/75/12/37/360_F_175123798_8YiliUxbWU7N96ndWrpVybCgVGy2klGj.jpg",
+                "https://i.pinimg.com/736x/c6/f9/00/c6f900c70ad5516d16ced2caaabedca8.jpg"
+            ],
+
+
+            "Mehadia": [
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/14/21/3d/f5/das-kloster.jpg?w=600&h=400&s=1",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcToo-bel1C1Tn6voq9MU8eJy4PiPbzIqFkxLw&s",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/18/d5/f0/03/caption.jpg?w=600&h=400&s=1",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/19/f5/70/03/god-s-bridge-ponoarele.jpg?w=600&h=400&s=1",
+                "https://st3.depositphotos.com/12145148/14896/i/450/depositphotos_148964943-stock-photo-green-grass-hills-on-the.jpg"
+            ],
+
+
+            "Dobreta": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjpBONZqZetMW43afPepIeq_VJycF4_vxnzQ&s",
+                "https://c8.alamy.com/comp/2WY5MR6/kinetic-fountain-and-the-palace-of-culture-in-drobeta-turnu-severin-in-romania-2WY5MR6.jpg",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQswIBB9n0WtSc6kG5tkJHtfSEFR1TNIaPPnA&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7UjD1saKqpDWbsnaNfqYAZuviHecQT_i2CAMWzSOuFdVvZZM9upKsvXjQypaZwbPPLos&usqp=CAU",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAXJ5OHBA4QuDD_KZlLTfJJ4UZuv8wCojQMw&s"
+            ],
+
+
+            "Craiova": [
+                "https://media.istockphoto.com/id/1454562514/photo/craiova-christmas-market-in-historical-oltenia-romania-travel-background.jpg?s=612x612&w=0&k=20&c=XRvAVx8hivAtJs8Eu6tUChbI6dkr0PGOAsZ2zUlTc8I=",
+                "https://thumbs.dreamstime.com/b/central-fountain-craiova-romania-iconic-city-landmark-beautiful-central-fountain-craiova-romania-famous-city-362344503.jpg",
+                "https://media.istockphoto.com/id/612411504/photo/alexandru-ioan-cuza-street-in-craiova-romania.jpg?s=612x612&w=0&k=20&c=oCKZ1dAZ8XIbNpGR_S93rXAQZkkJ7pro_1HZ4FQUNHY=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyEZtbyZq9HVXlcwMJY5sAEib1QWZN0jGq-Q&s",
+                "https://thumbs.dreamstime.com/b/beautiful-artesian-well-english-park-craiova-city-romania-located-city-center-english-park-craiova-romania-221025373.jpg"
+            ],
+
+
+            "Pitesti": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxb3V-loVJC13j05-9HYMEfzSil07ClOcOzQ&s",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/f7/a9/a6/caption.jpg?w=300&h=300&s=1",
+                "https://thumbs.dreamstime.com/b/kiosk-winter-day-trivale-forest-park-pitesti-romania-pitesti-romania-february-winter-day-park-kiosk-covered-390460013.jpg",
+                "https://thumbs.dreamstime.com/b/center-pitesti-night-illumination-outdoors-center-pitesti-night-illumination-225863207.jpg",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/17/78/8e/88/parcul-trivale.jpg?w=800&h=800&s=1"
+            ],
+
+
+            "Bucharest": [
+                "https://media-cdn.tripadvisor.com/media/photo-s/15/ca/33/ff/as-twilight-bathes-the.jpg",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRXFJusaskW54pgqu-glYMQoCDZN6AQuD5jQ&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSNHP9jnQhitphrVaE2VktT72i7iicM8C0AWQ&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyc97Qmg5oa0lNfFFk6Kf46EvAXB6TpqYTqA&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRIe87mlGa5AyJhHEg_k1aughe8K-q2feMHw&s"
+            ],
+
+
+            "Giurgiu": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTE6USt4ugYdfIvuToTERHv-pizWhvGgD7Xzg&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwfm1iBVZiRCxFHmFcziJOUpVLuNVfzL7ykA&s",
+                "https://thumbs.dreamstime.com/b/city-center-giurgiu-romania-beautiful-summer-day-giurgiu-city-romania-top-view-237896267.jpg",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTa_g8reWlgWOYHDg7yaMK9tbLf8q5ZNBryrw&s",
+                "https://media.istockphoto.com/id/1338740372/photo/giurgiu-port-view-on-a-sunny-day-coast-of-danube-river.jpg?s=612x612&w=0&k=20&c=fHNXEcIBCJS2kBlK7Ea5JGMFxxjzhOi8oRmM_UE5lcA="
+            ],
+
+
+            "Urziceni": [
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/10/79/a8/bd/nagyon-szep.jpg?w=400&h=300&s=1",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/30/03/0b/13/caption.jpg?w=800&h=400&s=1",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqwro2UgeT-DlayCbDA1QVQj5yk2QfK7O-lA&s",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/30/03/1a/ec/caption.jpg?w=800&h=400&s=1",
+                "https://media-cdn.tripadvisor.com/media/photo-s/25/fc/45/24/caption.jpg"
+            ],
+
+
+            "Hirsova": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZoZF89KP4NWU1tP3PAyd84pkR5W0r7Tb1sQ&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS1fxxjU_eRvf-gYC-bc8XMAbeeeui3J3Q0-Q&s",
+                "https://media.istockphoto.com/id/2158125424/photo/harman-romania-beautiful-springtime-with-medieval-honigberg-church-in-transylvania-built-by.jpg?s=612x612&w=0&k=20&c=5p9Eutd-E4aZsbX9TMWvQZuIUYTlSw4mgJvXutyMJyQ=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6HMXGEw-H15viT9huWElcaxAiQzev5z-UhA&s",
+                "https://media.istockphoto.com/id/1129221238/photo/sighisoara-town.jpg?s=612x612&w=0&k=20&c=eQ4urTKhQmTiOXtHyg9yYrvfbj2trqp8Cm7zIhr3Bdg="
+            ],
+
+
+            "Eforie": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfr1vsKXKmAWOFrWm4HR2Y3I_IwybBTTdRmA&s",
+                "https://media.istockphoto.com/id/1273737570/photo/summer-sunrise-at-the-black-sea-romania.jpg?s=612x612&w=0&k=20&c=xSL3xTNVF0awORklzxwKYiN03hDMIJIrm36w_fFQmF8=",
+                "https://www.shutterstock.com/image-photo/landscape-eforie-sud-beach-black-260nw-2164441759.jpg",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/18/44/78/b4/the-beach-of-eforie-nord.jpg?w=1200&h=-1&s=1",
+                "https://media.istockphoto.com/id/166628845/photo/beautiful-olimp-beach-in-summer-romania.jpg?s=612x612&w=0&k=20&c=w0-Fm5C9k1cS8Uvg5pWyBh_fMnj-3Yf-UMOOomIV04M="
+            ],
+
+
+            "Vaslui": [
+                "https://thumbs.dreamstime.com/b/autumn-copou-park-vaslui-sunset-city-romania-342047025.jpg",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwJUgqq6gFLx_sL19emO3BfvfTWHb0cU_2tQ&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQgNX5Lb7oJD_v1-lcY0CijfO9nGdAeH4ETXzKh6Q14J72e-8i5BKta7mI3OJqi1G4_Y8&usqp=CAU",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0RMPfv0QLyjoPiCY6SmhU4gaXEVi7IM2BDQ&s",
+                "https://thumbs.dreamstime.com/b/orthodox-monastery-complex-bujoreni-garden-foreground-vaslui-county-romania-73325084.jpg"
+            ],
+
+
+            "Iasi": [
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShInKln4gREfB2Mdjp2JuLOFGeRkiG28zI6A&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNFlPfC7ZdNsK-MNyHIFDPAUwx1rDa5FQ5uA&s",
+                "https://thumbs.dreamstime.com/b/beautiful-summer-landscape-palace-culture-iasi-romania-flower-garden-front-palace-culture-iasi-summer-scene-158005730.jpg",
+                "https://romaniatourism.com/images/iasi/iasi-roznovanu-palace-city-hall.jpg",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQSD82hWI1hnVpfzgWkaIqPsz57w135JVJ6WQ&s"
+            ],
+
+
+            "Neamt": [
+                "https://media.istockphoto.com/id/1388002933/photo/piatra-neamt-stefans-tower-and-the-royal-court-aerial-view.jpg?s=612x612&w=0&k=20&c=0mNNkiupv3khS-QyvFMRARW9fK8c5ccjvior5by0wwo=",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfufibL9FRGM-PSdJv68eQFuTYHQV-FOAu-A&s",
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_ATF9b0Y5r7RlfOlssM0FZJr6tPI-J5UCWQ&s",
+                "https://thumbs.dreamstime.com/b/aerial-beautiful-landscape-bisericani-neamt-romania-mountains-lake-sky-village-vegetation-picture-shot-139571971.jpg",
+                "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/09/e4/8d/67/20151111-104930-largejpg.jpg?w=1200&h=-1&s=1"
+            ]
+        };
+
+        let currentCity = "";
+        let currentIndex = 0;
+
+        function loadPlacesList() {
+            const container = document.getElementById("places-list");
+            container.innerHTML = "";
+            Object.keys(placeImages).forEach(city => {
+                const btn = document.createElement("button");
+                btn.innerText = city;
+                btn.style.margin = "5px";
+                btn.style.color = "black";
+                btn.onclick = () => showCityGallery(city);
+                container.appendChild(btn);
+            });
+        }
+        // Populate city buttons
+        const placesList = document.getElementById("places-list");
+        for (let city in placeImages) {
+            const btn = document.createElement("button");
+            btn.innerText = city;
+            btn.onclick = () => showCityGallery(city);
+            placesList.appendChild(btn);
+        }
+
+        function showCityGallery(city) {
+            currentCity = city;
+            currentIndex = 0;
+            updateGallery();
+            document.getElementById("gallery-overlay").style.display = "flex";
+        }
+
+        // Update gallery content
+        function updateGallery() {
+            document.getElementById("gallery-title").innerText = currentCity;
+            document.getElementById("gallery-image").src = placeImages[currentCity][currentIndex];
+            document.getElementById("gallery-caption").innerText =
+                `Image ${currentIndex + 1} of ${placeImages[currentCity].length}`;
+        }
+
+        // Navigation arrows
+        document.getElementById("gallery-prev").onclick = () => {
+            currentIndex = (currentIndex - 1 + placeImages[currentCity].length) % placeImages[currentCity].length;
+            updateGallery();
+        };
+
+        document.getElementById("gallery-next").onclick = () => {
+            currentIndex = (currentIndex + 1) % placeImages[currentCity].length;
+            updateGallery();
+        };
+
+        // Close gallery
+        document.getElementById("gallery-close").onclick = () => {
+            document.getElementById("gallery-overlay").style.display = "none";
+        };
+
+        // Click outside to close
+        document.getElementById("gallery-overlay").onclick = (e) => {
+            if (e.target.id === "gallery-overlay") {
+                document.getElementById("gallery-overlay").style.display = "none";
+            }
+        };
+
+        // Init
+        window.onload = () => {
+            showSection('route');
+            loadPlacesList();
+        };
+    </script>
+
+</body>
+
+</html>
